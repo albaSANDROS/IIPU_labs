@@ -48,11 +48,11 @@ int main()
 			1024, 
 			nullptr);
 		
-		wstring ids(buffer);
+		wstring id(buffer);
 
 
-		wstring venID(ids.substr(ids.find(L"VEN_") + 4, 4));
-		wstring devID(ids.substr(ids.find(L"DEV_") + 4, 4));
+		wstring venID(id.substr(id.find(L"VEN_") + 4, 4));
+		wstring devID(id.substr(id.find(L"DEV_") + 4, 4));
 
 	
 		wcout << left <<setw(50) << name << "\t";
