@@ -1,0 +1,65 @@
+#pragma comment(lib, "setupapi.lib")
+#include <Windows.h>
+#include <setupapi.h>
+#include <iostream>
+#include <iomanip>
+
+using namespace std;
+
+int main()
+{
+
+	setlocale(LC_ALL, "Russian");
+	cout << left << setw(50) << "Device Name" << left << setw(15) << "Vendor ID" << left << setw(15) << "Device ID" << endl;
+
+	HDEVINFO devInfo = SetupDiGetClassDevs	// дескриптор набора информации об устройстве
+		(nullptr,							// указатель класса настройки устройства (необязательно)
+		TEXT("PCI"),						//	Enumerator - идентификатор экземпляра устройства
+		nullptr,							//  hwndParent - окно верхнего уровня экземпляра пользовательского интерфейса (необязательно)
+		DIGCF_PRESENT 
+		| DIGCF_ALLCLASSES);				// Flags - устройва доступные в данный момент | все установленные
+
+	SP_DEVINFO_DATA devInfoData;			// структура представляет информацию об устройстве
+	TCHAR buffer[1024];
+
+	for (int i = 0; ; i++)
+	{
+		devInfoData.cbSize = sizeof(devInfoData); // заполняем размер структуры
+		if (SetupDiEnumDeviceInfo(devInfo, i, &devInfoData) == FALSE)
+			break;
+		memset(buffer, 0, sizeof(buffer));
+		
+		SetupDiGetDeviceRegistryProperty(devInfo,// набор устройств
+			&devInfoData,					// конкретное устройство из набора
+			SPDRP_DEVICEDESC,				// Property - получить название устойства
+			nullptr,						// получаемый тип данных
+			(BYTE*)buffer,					// куда записать имя
+			1024, 							// размер буфера
+			nullptr);						// сколько символов занимает идендификатор
+		
+		wstring name(buffer);
+		
+		memset(buffer, 0, sizeof(buffer));
+		SetupDiGetDeviceRegistryProperty(devInfo,
+			&devInfoData, 
+			SPDRP_HARDWAREID, 
+			nullptr, 
+			(BYTE*)buffer, 
+			1024, 
+			nullptr);
+		
+		wstring ids(buffer);
+
+
+		wstring venID(ids.substr(ids.find(L"VEN_") + 4, 4));
+		wstring devID(ids.substr(ids.find(L"DEV_") + 4, 4));
+
+	
+		wcout << left <<setw(50) << name << "\t";
+		wcout << left <<setw(15) << venID <<left << setw(15) << devID << endl;
+		SetupDiDeleteDeviceInfo(devInfo, &devInfoData);
+	}
+	SetupDiDestroyDeviceInfoList(devInfo);
+
+	system("pause");
+}
