@@ -1,106 +1,148 @@
+#pragma comment(lib, "PowrProf.lib")
+#include <Windows.h>
+#include <WinBase.h>
+#include <iostream>
+#include <powrprof.h>
+#include <thread>   
+#include "conio.h"
+#include <Poclass.h>
+#include <Setupapi.h>
+#include<devguid.h>
 #pragma comment (lib, "setupapi.lib")
 #include <iostream>
+#include <conio.h>
 #include <Windows.h>
-#include <map>
-#include <string>
-#include <iomanip>
 #include <Setupapi.h>
-#include <devguid.h>
 #include <Poclass.h>
-#include <sstream>
-
-
+#include <batclass.h>
+#include<devguid.h>
 using namespace std;
 
-const map<int, string> ACLineStatuses
+int a;
+bool BatteryHim()
 {
-	{0 ,"Offline"},
-	{1 ,"Online"},
-	{255 ,"Unknown status"}
-};
+	HDEVINFO DeviceInfoSet;
 
-const map<int, string> BatteryChargeStatus
-{
-	{0 ,"Battery capacity is between low and high"},
-	{1 ,"High—the battery capacity is at more than 66 percent"},
-	{2 ,"Low—the battery capacity is at less than 33 percent"},
-	{4 ,"Critical—the battery capacity is at less than five percent"},
-	{8 ,"Charging"},
-	{128 ,"No system battery"},
-	{255 ,"Unknown status—unable to read the battery flag information"}
-};
+	if ((DeviceInfoSet = SetupDiGetClassDevs(&GUID_DEVCLASS_BATTERY, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE)) == INVALID_HANDLE_VALUE)
+	{
+		cout << "Error: " << GetLastError() << endl;
+		exit(1);
+	}
 
-string getBatteryInfo()
-{
+	SP_DEVICE_INTERFACE_DATA DeviceInterfaceData = { 0 };
+	ZeroMemory(&DeviceInterfaceData, sizeof(SP_DEVINFO_DATA));
+	DeviceInterfaceData.cbSize = sizeof(SP_DEVINFO_DATA);
 
-	HDEVINFO batteryHandleSet;
-	if ((batteryHandleSet = SetupDiGetClassDevs(&GUID_DEVCLASS_BATTERY, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE)) == INVALID_HANDLE_VALUE) return "Error getting info\n";
-	SP_DEVICE_INTERFACE_DATA batteryDeviceInterfaceData = { 0 };
-	batteryDeviceInterfaceData.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
-	SetupDiEnumDeviceInterfaces(batteryHandleSet, 0, &GUID_DEVCLASS_BATTERY, 0, &batteryDeviceInterfaceData);
-	DWORD bufferSize = 0;
-	SetupDiGetDeviceInterfaceDetail(batteryHandleSet, &batteryDeviceInterfaceData, 0, 0, &bufferSize, 0);
-	PSP_DEVICE_INTERFACE_DETAIL_DATA batteryDeviceInterfaceDetailData = (PSP_DEVICE_INTERFACE_DETAIL_DATA)new BYTE[bufferSize];
+	if (SetupDiEnumDeviceInterfaces(DeviceInfoSet, NULL, &GUID_DEVCLASS_BATTERY, 0, &DeviceInterfaceData))
+	{
+		DWORD cbRequired = 0;
 
-	batteryDeviceInterfaceDetailData->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
-	SetupDiGetDeviceInterfaceDetail(batteryHandleSet, &batteryDeviceInterfaceData, batteryDeviceInterfaceDetailData, bufferSize, &bufferSize, 0);
-	HANDLE batteryHandle = CreateFile(batteryDeviceInterfaceDetailData->DevicePath, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		SetupDiGetDeviceInterfaceDetail(DeviceInfoSet, &DeviceInterfaceData, NULL, NULL, &cbRequired, NULL);
+		if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+		{
+			PSP_DEVICE_INTERFACE_DETAIL_DATA pdidd = (PSP_DEVICE_INTERFACE_DETAIL_DATA)LocalAlloc(LPTR, cbRequired);
+			if (pdidd)
+			{
+				pdidd->cbSize = sizeof(*pdidd);
+				if (SetupDiGetDeviceInterfaceDetail(DeviceInfoSet, &DeviceInterfaceData, pdidd, cbRequired, &cbRequired, NULL))
+				{
+					HANDLE hBattery = CreateFile(pdidd->DevicePath, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+					if (INVALID_HANDLE_VALUE != hBattery)
+					{
+						BATTERY_QUERY_INFORMATION BatteryQueryInformation = { 0 };
 
-	DWORD bytesReturned = 0;
-	DWORD batteryTag = 0;
-	DWORD waitTime = 1000;
-	DeviceIoControl(batteryHandle, IOCTL_BATTERY_QUERY_TAG, &waitTime, sizeof(DWORD), &batteryTag, sizeof(DWORD), &bytesReturned, NULL);
+						DWORD bytesWait = 0;
+						DWORD bytesReturned = 0;
 
+						if (DeviceIoControl(hBattery, IOCTL_BATTERY_QUERY_TAG, &bytesWait, sizeof(bytesWait), &BatteryQueryInformation.BatteryTag,
+							sizeof(BatteryQueryInformation.BatteryTag), &bytesReturned, NULL) && BatteryQueryInformation.BatteryTag)
+						{
+							BATTERY_INFORMATION BatteryInfo = { 0 };
+							BatteryQueryInformation.InformationLevel = BatteryInformation;
 
-	BATTERY_INFORMATION batteryInfo = {};
-	BATTERY_QUERY_INFORMATION batteryQueryInfo = { 0 };
-	batteryQueryInfo.BatteryTag = batteryTag;
-	DeviceIoControl(batteryHandle, IOCTL_BATTERY_QUERY_INFORMATION, &batteryQueryInfo, sizeof(BATTERY_QUERY_INFORMATION), &batteryInfo, sizeof(BATTERY_INFORMATION), &bytesReturned, NULL);
+							if (DeviceIoControl(hBattery, IOCTL_BATTERY_QUERY_INFORMATION, &BatteryQueryInformation, sizeof(BatteryQueryInformation),
+								&BatteryInfo, sizeof(BatteryInfo), &bytesReturned, NULL))
+							{
+								cout << "Type: " << BatteryInfo.Chemistry << endl;
+							}
+						}
+						else
+						{
+							cout << "Error: " << GetLastError() << endl;
+							CloseHandle(hBattery);
+							return false;
+						}
+						CloseHandle(hBattery);
+					}
+					else
+					{
+						cout << "Error: " << GetLastError() << endl;
+						return false;
+					}
+				}
+				LocalFree(pdidd);
+			}
+		}
+	}
 
-
-	BYTE buffer[BUFSIZ];
-	batteryQueryInfo.InformationLevel = BatteryManufactureName;
-	ZeroMemory(buffer, BUFSIZ);
-	DeviceIoControl(batteryHandle, IOCTL_BATTERY_QUERY_INFORMATION, &batteryQueryInfo, sizeof(BATTERY_QUERY_INFORMATION), buffer, BUFSIZ, &bytesReturned, NULL);
-	wstring manufactureName((wchar_t*)buffer);
-
-	batteryQueryInfo.InformationLevel = BatteryDeviceName;
-	ZeroMemory(buffer, BUFSIZ);
-	DeviceIoControl(batteryHandle, IOCTL_BATTERY_QUERY_INFORMATION, &batteryQueryInfo, sizeof(BATTERY_QUERY_INFORMATION), buffer, BUFSIZ, &bytesReturned, NULL);
-	wstring batteryName((wchar_t*)buffer);
-
-	string batteryChemistry = (char*)batteryInfo.Chemistry;
-	batteryChemistry = batteryChemistry.substr(0, 4);
-
-	wstring model = L"Model: " + manufactureName + batteryName;
-	string modelSTR(model.begin(), model.end());
-	stringstream ss;
-
-	ss << modelSTR << '\n'
-		<< "Battery type: " << batteryChemistry << '\n'
-		<< "Cycle count: " << batteryInfo.CycleCount << '\n'
-		<< "Designed capacity: " << batteryInfo.DesignedCapacity << '\n'
-		<< "Full charge capacity: " << batteryInfo.FullChargedCapacity << "\n\n";
-
-	delete[] batteryDeviceInterfaceDetailData;
-	return ss.str();
+	SetupDiDestroyDeviceInfoList(DeviceInfoSet);
+	return true;
 }
 
-int main()
-{
-	string staticBatteryInfo = getBatteryInfo();
-	while (true)
-	{
-		cout << staticBatteryInfo;
-		SYSTEM_POWER_STATUS powerStatus;
-		GetSystemPowerStatus(&powerStatus);
-		cout << "AC power status: " << ACLineStatuses.find(powerStatus.ACLineStatus)->second
-			<< "\nBattery charge status: " << BatteryChargeStatus.find(powerStatus.BatteryFlag)->second
-			<< "\nBattery charge: " << (powerStatus.BatteryLifePercent != 255 ? to_string(powerStatus.BatteryLifePercent) : "Unknown")
-			<< "\nBattery saver: " << (powerStatus.SystemStatusFlag ? "On" : "Off")
-			<< "\nTotal battery lifetime: " << fixed << setprecision(2) << (powerStatus.BatteryFullLifeTime == MAXDWORD ? "UNAVAILABLE" : to_string((int)powerStatus.BatteryFullLifeTime / 60)) << " minutes"
-			<< "\nRemain battery lifetime: " << (powerStatus.BatteryLifeTime == MAXDWORD ? "UNAVAILABLE" : to_string((int)powerStatus.BatteryLifeTime / 60)) << " minutes" << '\n';
-		Sleep(250);
+void getinfo() {
+
+	SYSTEM_POWER_STATUS powerStatus;
+
+	char ac[2][8] = { "Offline", "Online" };
+	char saver[2][8] = { "is off", "on" };
+
+	while (a != 2) {
+
 		system("cls");
+
+		cout << "Press 0 to Sleep" << endl;
+		cout << "Press 1 to Hibernate" << endl;
+		cout << "Press 2 to Exit" << endl << endl;
+
+		GetSystemPowerStatus(&powerStatus);
+
+	
+		cout << "Battery percentage: " << (int)powerStatus.BatteryLifePercent << endl;
+		cout << "Battery saver " << saver[powerStatus.SystemStatusFlag] << endl;
+		cout << "AC line status: " << ac[powerStatus.ACLineStatus] << endl;
+		
+		BatteryHim();
+
+		Sleep(1000);
 	}
+}
+
+
+int main() {
+
+	thread log(getinfo);
+	setlocale(LC_ALL, "RU");
+	while (a != 2) {
+
+		if (a = _getch()) {
+
+			a -= '0';
+
+			switch (a) {
+
+			case(0):
+				SetSuspendState(FALSE, FALSE, FALSE);
+				break;
+
+			case(1):
+				SetSuspendState(TRUE, FALSE, FALSE);
+				break;
+
+			}
+		}
+	}
+
+	log.join();
+
+	return 0;
 }
