@@ -1,7 +1,6 @@
 #pragma comment(lib, "PowrProf.lib")
 #pragma comment (lib, "setupapi.lib")
 #include <Windows.h>
-#include <WinBase.h>
 #include <iostream>
 #include <powrprof.h>
 #include <thread>   
@@ -9,13 +8,13 @@
 #include <Poclass.h>
 #include <Setupapi.h>
 #include <devguid.h>
-#include <batclass.h>
+//#include <batclass.h>
 
 using namespace std;
 
 int a = 5;
 
-bool BatteryHim()
+bool batteryChemistry()
 {
 	HDEVINFO DeviceInfoSet;
 
@@ -60,9 +59,9 @@ bool BatteryHim()
 								&BatteryInfo, sizeof(BatteryInfo), &bytesReturned, NULL))
 							{
 								cout << "Battery type: ";
-								for (int b = 0; b < 4; b++) 
-								{ 
-									cout << BatteryInfo.Chemistry[b]; 
+								for (int b = 0; b < 4; b++)
+								{
+									cout << BatteryInfo.Chemistry[b];
 								};
 								cout << endl << endl;
 							}
@@ -93,9 +92,9 @@ bool BatteryHim()
 void getinfo() {
 
 	SYSTEM_POWER_STATUS powerStatus;
-
+	
+	char saver[2][7] = { "is off", "is on" };
 	char ac[2][8] = { "Offline", "Online" };
-	char saver[2][8] = { "is off", "on" };
 
 	while (a != 0) {
 
@@ -103,13 +102,13 @@ void getinfo() {
 
 		GetSystemPowerStatus(&powerStatus);
 
-	
+
 		cout << "Battery percentage: " << (int)powerStatus.BatteryLifePercent << endl;
 		cout << "Battery saver " << saver[powerStatus.SystemStatusFlag] << endl;
 		cout << "AC line status: " << ac[powerStatus.ACLineStatus] << endl;
-		
-		BatteryHim();
-		
+
+		batteryChemistry();
+
 		cout << "Press 0 to Exit" << endl;
 		cout << "Press 1 to Sleep" << endl;
 		cout << "Press 2 to Hibernate" << endl << endl;
@@ -127,7 +126,7 @@ int main() {
 
 		if (a = _getch()) {
 
-			 a -= '0';
+			a -= '0';
 
 			switch (a) {
 			case(0):
