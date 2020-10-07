@@ -1,4 +1,5 @@
 #pragma comment(lib, "PowrProf.lib")
+#pragma comment (lib, "setupapi.lib")
 #include <Windows.h>
 #include <WinBase.h>
 #include <iostream>
@@ -7,18 +8,13 @@
 #include "conio.h"
 #include <Poclass.h>
 #include <Setupapi.h>
-#include<devguid.h>
-#pragma comment (lib, "setupapi.lib")
-#include <iostream>
-#include <conio.h>
-#include <Windows.h>
-#include <Setupapi.h>
-#include <Poclass.h>
+#include <devguid.h>
 #include <batclass.h>
-#include<devguid.h>
+
 using namespace std;
 
-int a;
+int a = 5;
+
 bool BatteryHim()
 {
 	HDEVINFO DeviceInfoSet;
@@ -63,7 +59,12 @@ bool BatteryHim()
 							if (DeviceIoControl(hBattery, IOCTL_BATTERY_QUERY_INFORMATION, &BatteryQueryInformation, sizeof(BatteryQueryInformation),
 								&BatteryInfo, sizeof(BatteryInfo), &bytesReturned, NULL))
 							{
-								cout << "Type: " << BatteryInfo.Chemistry << endl;
+								cout << "Battery type: ";
+								for (int b = 0; b < 4; b++) 
+								{ 
+									cout << BatteryInfo.Chemistry[b]; 
+								};
+								cout << endl << endl;
 							}
 						}
 						else
@@ -96,13 +97,9 @@ void getinfo() {
 	char ac[2][8] = { "Offline", "Online" };
 	char saver[2][8] = { "is off", "on" };
 
-	while (a != 2) {
+	while (a != 0) {
 
 		system("cls");
-
-		cout << "Press 0 to Sleep" << endl;
-		cout << "Press 1 to Hibernate" << endl;
-		cout << "Press 2 to Exit" << endl << endl;
 
 		GetSystemPowerStatus(&powerStatus);
 
@@ -112,6 +109,10 @@ void getinfo() {
 		cout << "AC line status: " << ac[powerStatus.ACLineStatus] << endl;
 		
 		BatteryHim();
+		
+		cout << "Press 0 to Exit" << endl;
+		cout << "Press 1 to Sleep" << endl;
+		cout << "Press 2 to Hibernate" << endl << endl;
 
 		Sleep(1000);
 	}
@@ -122,19 +123,21 @@ int main() {
 
 	thread log(getinfo);
 	setlocale(LC_ALL, "RU");
-	while (a != 2) {
+	while (a != 0) {
 
 		if (a = _getch()) {
 
-			a -= '0';
+			 a -= '0';
 
 			switch (a) {
-
 			case(0):
-				SetSuspendState(FALSE, FALSE, FALSE);
 				break;
 
 			case(1):
+				SetSuspendState(FALSE, FALSE, FALSE);
+				break;
+
+			case(2):
 				SetSuspendState(TRUE, FALSE, FALSE);
 				break;
 
