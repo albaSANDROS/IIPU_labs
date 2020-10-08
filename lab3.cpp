@@ -90,8 +90,8 @@ void getinfo() {
 
 	SYSTEM_POWER_STATUS powerStatus;
 	
-	char saver[2][7] = { "is off", "is on" };
-	char ac[2][8] = { "Offline", "Online" };
+	char saveMODE[2][7] = { "is off", "is on" };
+	char acSTATUS[2][8] = { "Offline", "Online" };
 
 	while (a != 0) {
 
@@ -101,8 +101,8 @@ void getinfo() {
 
 
 		cout << "Battery percentage: " << (int)powerStatus.BatteryLifePercent << endl;
-		cout << "Battery saver " << saver[powerStatus.SystemStatusFlag] << endl;
-		cout << "AC line status: " << ac[powerStatus.ACLineStatus] << endl;
+		cout << "Battery saver " << saveMODE[powerStatus.SystemStatusFlag] << endl;
+		cout << "AC line status: " << acSTATUS[powerStatus.ACLineStatus] << endl;
 
 		batteryChemistry();
 
