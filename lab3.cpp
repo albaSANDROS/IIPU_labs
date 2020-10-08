@@ -8,7 +8,6 @@
 #include <Poclass.h>
 #include <Setupapi.h>
 #include <devguid.h>
-//#include <batclass.h>
 
 using namespace std;
 
@@ -36,8 +35,7 @@ bool batteryChemistry()
 		if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
 		{
 			PSP_DEVICE_INTERFACE_DETAIL_DATA pdidd = (PSP_DEVICE_INTERFACE_DETAIL_DATA)LocalAlloc(LPTR, cbRequired);
-			if (pdidd)
-			{
+
 				pdidd->cbSize = sizeof(*pdidd);
 				if (SetupDiGetDeviceInterfaceDetail(DeviceInfoSet, &DeviceInterfaceData, pdidd, cbRequired, &cbRequired, NULL))
 				{
@@ -81,7 +79,6 @@ bool batteryChemistry()
 					}
 				}
 				LocalFree(pdidd);
-			}
 		}
 	}
 
@@ -117,11 +114,9 @@ void getinfo() {
 	}
 }
 
-
 int main() {
 
 	thread log(getinfo);
-	setlocale(LC_ALL, "RU");
 	while (a != 0) {
 
 		if (a = _getch()) {
