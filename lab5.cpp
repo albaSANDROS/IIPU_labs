@@ -217,31 +217,6 @@ LRESULT FAR PASCAL WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 				UnregisterDeviceNotification(info->dbch_hdevnotify);
 			}
 		}
-		if (wParam == DBT_DEVICEQUERYREMOVE)
-		{
-			PDEV_BROADCAST_HDR lpdb = (PDEV_BROADCAST_HDR)lParam;
-			PDEV_BROADCAST_HANDLE info = (PDEV_BROADCAST_HANDLE)lpdb;
-			char result = 0;
-			cout << "Query Remove (Handle Notification) for " << handleToFriendlyName(info->dbch_handle) << endl;
-			while (result != 'd' && result != 'r')
-			{
-				cout << "Device removal was initiated. R to remove or D to not remove \n";
-				rewind(stdin);
-				result = _getch();
-			}
-			
-			if (lpdb->dbch_devicetype == DBT_DEVTYP_HANDLE && result == 'r')
-			{
-				PDEV_BROADCAST_HANDLE info = (PDEV_BROADCAST_HANDLE)lpdb;
-				setSafety(info->dbch_handle, true);
-			}
-			else
-			{			
-				cout << "Device ejection disabled\n";
-				return BROADCAST_QUERY_DENY;
-			}
-
-		}
 	}
 	return DefWindowProc(hWnd, message, wParam, lParam);
 }
@@ -322,10 +297,7 @@ DWORD WINAPI ThreadProc(_In_ LPVOID lpParameter)
 
 int main()
 {
-	
-	setlocale(LC_ALL, "Russian"); 
-	SetConsoleCP(1251); 
-	SetConsoleOutputCP(1251); 
+	system("chcp 1251");
 	system("cls");
 	CreateThread(NULL, NULL, ThreadProc, NULL, NULL, NULL);
 	while (1)
